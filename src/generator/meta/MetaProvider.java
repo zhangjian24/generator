@@ -24,120 +24,157 @@ public class MetaProvider {
 		this.db = db;
 	}
 
+	/**
+	 * 
+	 * @param tableName
+	 * @return tableName-对应表的名字; className-对应model的类; comment-表注释;
+	 *         feilds-model字段列表 dataType-表字段类型; feildType-model类字段类型;
+	 *         columnName-表中字段名;
+	 *         simpleFeildType-model类字段的简写;feildIndex-model中字段的索引;
+	 *         feildName-model中字段名; columnComment-表字段注释;
+	 * @throws ClassNotFoundException
+	 * @throws SQLException
+	 */
 	public Map<String, Object> getMeta(String tableName) throws ClassNotFoundException, SQLException {
 		if (StringUtils.isBlank(tableName) || !DbConf.avilible(this.db)) {
 			return null;
 		}
-		Map<String, Object> modelMeta=new HashMap<String, Object>();
-		//加载驱动
+		Map<String, Object> modelMeta = new HashMap<String, Object>();
+		// 加载驱动
 		Class.forName(db.getDbDriver());
 		Connection conn = DriverManager.getConnection(db.getUrl(), db.getUser(), db.getPassword());
 		log.debug(conn);
 		if (conn == null) {
 			return null;
 		}
-		
-		//获取字段信息
+		// 生成Statement
 		Statement stat = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 		log.debug(stat);
 		if (stat == null) {
 			return null;
 		}
-		//获取表信息
-		String tableSql = "select * from information_schema.tables where table_name='"+tableName+"'";
+
+		// 获取表信息
+		String tableSql = "select * from information_schema.tables where table_name='" + tableName + "'";
 		ResultSet tableResult = stat.executeQuery(tableSql);
-		String comment="";
-		if(tableResult.next()){
-			comment=tableResult.getString("TABLE_COMMENT");
+		String comment = "";
+		if (tableResult.next()) {
+			comment = tableResult.getString("TABLE_COMMENT");
 		}
 		tableResult.close();
-		modelMeta.put("className", this.getClassName(tableName));
+		String className = this.getClassName(tableName);
+		modelMeta.put("tableName", tableName);
+		modelMeta.put("className", className);
 		modelMeta.put("comment", comment);
-		
-		//查询数据表字段信息
-		String columnSql = "select * from information_schema.COLUMNS where table_name='"+tableName+"'";
+		log.debug("{tableName:" + tableName + ",className:" + className + ",comment:" + comment + "}");
+
+		// 查询数据表字段信息
+		String columnSql = "select * from information_schema.COLUMNS where table_name='" + tableName + "'";
 		log.debug(columnSql);
 		ResultSet columnResult = stat.executeQuery(columnSql);
 		log.debug(columnResult);
 		if (columnResult == null) {
 			return null;
 		}
-		List<Map<String, Object>> columns = new ArrayList<Map<String, Object>>();
-		while(columnResult.next()){
-			Map<String, Object> column = new HashMap<String, Object>();
-			String typeName =this.getColumnType(columnResult.getString("DATA_TYPE"));
-			column.put("typeName", typeName);
-			log.debug("typeName:" + typeName);
-			String name=this.getFeild(columnResult.getString("COLUMN_NAME"));
-			column.put("name", name);
-			log.debug("name:" + name);
-			column.put("upName", StringUtils.upperCase(StringUtils.substring(name, 0, 1))+StringUtils.substring(name, 1));
-			String colComment = columnResult.getString("COLUMN_COMMENT");
-			column.put("comment", colComment);
-			log.debug("comment:"+colComment);
-			columns.add(column);
+		List<String> imports=new ArrayList<String>();
+		List<Map<String, Object>> feilds = new ArrayList<Map<String, Object>>();
+		while (columnResult.next()) {
+			Map<String, Object> feild = new HashMap<String, Object>();
+			// table 中的datatype
+			String dataType = columnResult.getString("DATA_TYPE");
+			feild.put("dataType", dataType);
+			// model中的字段类型
+			String feildType = this.getColumnType(dataType);
+			feild.put("feildType", feildType);
+			if(!feildType.startsWith("java.lang.") && !imports.contains(feildType)){
+				imports.add(feildType);
+			}
+			
+			String simpleFeildType = feildType;
+			int index = StringUtils.lastIndexOf(feildType, ".");
+			if (index > 0) {
+				simpleFeildType = StringUtils.substring(feildType, index + 1);
+			}
+			feild.put("simpleFeildType", simpleFeildType);
+			// table 中字段名称
+			String columnName = columnResult.getString("COLUMN_NAME");
+			feild.put("columnName", columnName);
+			String feildIndex = columnResult.getString("ORDINAL_POSITION");
+			feild.put("feildIndex", feildIndex);
+			// model 中字段的名称
+			String feildName = this.getFeild(columnName);
+			feild.put("feildName", feildName);
+			String columnComment = columnResult.getString("COLUMN_COMMENT");
+			// table中字段的注释
+			feild.put("columnComment", columnComment);
+			log.debug("{dataType:" + dataType + ",feildType:" + feildType + ",simpleFeildType:" + simpleFeildType + ",columnName:" + columnName
+					+ ",feildIndex:" + feildIndex + ",feildName:" + feildName + ",columnComment:" + columnComment + "}");
+			feilds.add(feild);
 		}
 		columnResult.close();
 		stat.close();
 		conn.close();
-		modelMeta.put("columns", columns);
+		modelMeta.put("feilds", feilds);
+		modelMeta.put("imports", imports);
 		return modelMeta;
 	}
 
 	/**
 	 * 类型映射
+	 * 
 	 * @param DataType
 	 * @return
 	 */
 	private String getColumnType(String DataType) {
 		String typeStr = "";
-		
-		if(StringUtils.equalsIgnoreCase(DataType, "VARCHAR")){
-			typeStr="String";   
-		}else if(StringUtils.equalsIgnoreCase(DataType, "CHAR")){
-			typeStr="String";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "BLOB")){
-			typeStr="byte[]";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "TEXT")){
-			typeStr="String";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "MEDIUMTEXT")){
-			typeStr="String";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "INTEGER")){
-			typeStr="Integer";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "INT")){
-			typeStr="Integer";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "TINYINT")){
-			typeStr="Integer";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "SMALLINT")){
-			typeStr="Integer";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "MEDIUMINT")){
-			typeStr="Integer";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "BIT")){
-			typeStr="Boolean";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "BIGINT")){
-			typeStr="BigInteger";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "FLOAT")){
-			typeStr="Float";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "DOUBLE")){
-			typeStr="Double";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "DECIMAL")){
-			typeStr="BigDecimal";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "DATE")){
-			typeStr="Date";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "TIME")){
-			typeStr="Date";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "DATETIME")){
-			typeStr="Date";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "TIMESTAMP")){
-			typeStr="Date";
-		}else if(StringUtils.equalsIgnoreCase(DataType, "YEAR")){
-			typeStr="Date";
+
+		if (StringUtils.equalsIgnoreCase(DataType, "VARCHAR")) {
+			typeStr = "java.lang.String";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "CHAR")) {
+			typeStr = "java.lang.String";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "BLOB")) {
+			typeStr = "java.lang.byte[]";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "TEXT")) {
+			typeStr = "java.lang.String";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "MEDIUMTEXT")) {
+			typeStr = "java.lang.String";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "INTEGER")) {
+			typeStr = "java.lang.Integer";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "INT")) {
+			typeStr = "java.lang.Integer";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "TINYINT")) {
+			typeStr = "java.lang.Integer";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "SMALLINT")) {
+			typeStr = "java.lang.Integer";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "MEDIUMINT")) {
+			typeStr = "java.lang.Integer";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "BIT")) {
+			typeStr = "java.lang.Boolean";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "BIGINT")) {
+			typeStr = "java.math.BigInteger";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "FLOAT")) {
+			typeStr = "java.lang.Float";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "DOUBLE")) {
+			typeStr = "java.lang.Double";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "DECIMAL")) {
+			typeStr = "java.math.BigDecimal";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "DATE")) {
+			typeStr = "java.util.Date";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "TIME")) {
+			typeStr = "java.util.Date";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "DATETIME")) {
+			typeStr = "java.util.Date";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "TIMESTAMP")) {
+			typeStr = "java.util.Date";
+		} else if (StringUtils.equalsIgnoreCase(DataType, "YEAR")) {
+			typeStr = "java.util.Date";
 		}
 		return typeStr;
 	}
 
 	/**
 	 * 获取java类的字段
+	 * 
 	 * @param columnName
 	 * @return
 	 */
@@ -152,17 +189,18 @@ public class MetaProvider {
 		}
 		return feild.toString();
 	}
-	
+
 	/**
 	 * 同表名获取类名
+	 * 
 	 * @param tableName
 	 * @return
 	 */
-	private String getClassName(String tableName){
-		StringBuffer className=new StringBuffer();
-		if(StringUtils.isNotBlank(tableName)){
+	private String getClassName(String tableName) {
+		StringBuffer className = new StringBuffer();
+		if (StringUtils.isNotBlank(tableName)) {
 			String[] subStrs = StringUtils.split(tableName, "_");
-			for(String sub:subStrs){
+			for (String sub : subStrs) {
 				className.append(StringUtils.upperCase(StringUtils.substring(sub, 0, 1))).append(StringUtils.lowerCase(StringUtils.substring(sub, 1)));
 			}
 		}

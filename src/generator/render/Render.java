@@ -42,7 +42,7 @@ public class Render {
 		Template tpl = conf.getTemplate(tplFileName);
 		File outFileDir = new File(outAbsPath.substring(0, outAbsPath.lastIndexOf(File.separatorChar)));
 		if(!outFileDir.exists()){
-			outFileDir.mkdir();
+			outFileDir.mkdirs();
 		}
 		Writer out = new FileWriter(new File(outAbsPath));
 		tpl.process(modelMeta, out);
