@@ -54,17 +54,33 @@ public class Main {
 		//model类生成
 		String modelTpl = "model_java.ftl";
 		String modelPkg = generatorConf.getString("target.model.pkg");
-		String modelUrl="/"+StringUtils.replace(modelPkg, ".", "/");
+		String modelUrl=File.separator+StringUtils.replace(modelPkg, ".", File.separator);
 		String modelPath = targetUrl+modelUrl+File.separatorChar+modelMeta.get("className")+".java";
 		modelMeta.put("modelPkg", modelPkg);
 		rd.render(modelTpl, modelPath, modelMeta);
 
-//		//dto类生成
-//		String dtoTpl="dto_java.ftl";
-//		String dtoPkg = generatorConf.getString("target.dto.pkg");
-//		String dtoUrl="/"+StringUtils.replace(dtoPkg, ".", "/");
-//		String dtoPath = targetUrl+dtoUrl+File.separatorChar+modelMeta.get("className")+"Dto.java";
-//		modelMeta.put("dtoPkg", dtoPkg);
-//		rd.render(dtoTpl, dtoPath, modelMeta);
+		//dto类生成
+		String dtoTpl="dto_java.ftl";
+		String dtoPkg = generatorConf.getString("target.dto.pkg");
+		String dtoUrl=File.separator+StringUtils.replace(dtoPkg, ".", File.separator);
+		String dtoPath = targetUrl+dtoUrl+File.separatorChar+modelMeta.get("className")+"Dto.java";
+		modelMeta.put("dtoPkg", dtoPkg);
+		rd.render(dtoTpl, dtoPath, modelMeta);
+		
+		//dao类生成
+		String daoTpl="dao_java.ftl";
+		String daoPkg=generatorConf.getString("target.dao.pkg");
+		String daoUrl=File.separator+StringUtils.replace(daoPkg, ".", File.separator);
+		String daoPath=targetUrl+daoUrl+File.separatorChar+modelMeta.get("className")+"Dao.java";
+		modelMeta.put("daoPkg", daoPkg);
+		rd.render(daoTpl, daoPath, modelMeta);
+		
+		//daoImpl类生成
+		String daoImplTpl="dao_impl_java.ftl";
+		String daoImplPkg=generatorConf.getString("target.dao.impl.pkg");
+		String daoImplUrl=File.separator+StringUtils.replace(daoImplPkg, ".", File.separator);
+		String daoImplPath=targetUrl+daoImplUrl+File.separatorChar+modelMeta.get("className")+"DaoImpl.java";
+		modelMeta.put("daoImplPkg", daoImplPkg);
+		rd.render(daoImplTpl, daoImplPath, modelMeta);
 	}
 }

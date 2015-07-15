@@ -1,17 +1,20 @@
 package ${dtoPkg?if_exists};
+<#list imports as import>
+import ${import};
+</#list>
 /**
 *
 *${comment?if_exists}
 */
-public class ${className?if_exists}Dto { 
-	<#list columns as column>
-	/**${column.comment?if_exists}*/
-	private ${column.typeName?if_exists} ${column.name?if_exists};
+public class ${className?if_exists}Dto extends BaseDto{ 
+	<#list feilds as feild>
+	/**${feild.columnComment?if_exists}*/
+	private ${feild.simpleFeildType?if_exists} ${feild.feildName?if_exists};
 
 	</#list>
-	<#list columns as column>
-	public ${column.typeName?if_exists} get${column.upName?if_exists}(){
-		return this.${column.name?if_exists};
+	<#list feilds as feild>
+	public ${feild.simpleFeildType?if_exists} get${feild.feildName?cap_first}(){
+		return this.${feild.feildName?if_exists};
 	}
 
 	</#list>
