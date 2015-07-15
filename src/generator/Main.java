@@ -82,5 +82,21 @@ public class Main {
 		String daoImplPath=targetUrl+daoImplUrl+File.separatorChar+modelMeta.get("className")+"DaoImpl.java";
 		modelMeta.put("daoImplPkg", daoImplPkg);
 		rd.render(daoImplTpl, daoImplPath, modelMeta);
+		
+		//service类生成
+		String serviceTpl="service_java.ftl";
+		String servicePkg=generatorConf.getString("target.service.pkg");
+		String serviceUrl=File.separator+StringUtils.replace(servicePkg, ".", File.separator);
+		String servicePath=targetUrl+serviceUrl+File.separatorChar+modelMeta.get("className")+"Service.java";
+		modelMeta.put("servicePkg", servicePkg);
+		rd.render(serviceTpl, servicePath, modelMeta);
+		
+		//serviceImpl类生成
+		String serviceImplTpl="service_impl_java.ftl";
+		String serviceImplPkg=generatorConf.getString("target.service.impl.pkg");
+		String serviceImplUrl=File.separator+StringUtils.replace(serviceImplPkg, ".", File.separator);
+		String serviceImplPath=targetUrl+serviceImplUrl+File.separatorChar+modelMeta.get("className")+"ServiceImpl.java";
+		modelMeta.put("serviceImplPkg", serviceImplPkg);
+		rd.render(serviceImplTpl, serviceImplPath, modelMeta);
 	}
 }
