@@ -6,7 +6,7 @@ import ${import};
 *
 *${comment?if_exists}
 */
-public class ${className?if_exists}Dto extends BaseDto{ 
+public class ${className?if_exists}Dto{ 
 	<#list feilds as feild>
 	/**${feild.columnComment?if_exists}*/
 	private ${feild.simpleFeildType?if_exists} ${feild.feildName?if_exists};

@@ -67,6 +67,11 @@ public class Main {
 		modelMeta.put("dtoPkg", dtoPkg);
 		rd.render(dtoTpl, dtoPath, modelMeta);
 		
+		//sqlmap生成
+		String sqlmapTpl="sqlmap_xml.ftl";
+		String sqlmapPath=targetUrl+modelUrl+File.separatorChar+modelMeta.get("className")+"-sqlmap.xml";
+		rd.render(sqlmapTpl, sqlmapPath, modelMeta);
+		
 		//dao类生成
 		String daoTpl="dao_java.ftl";
 		String daoPkg=generatorConf.getString("target.dao.pkg");
