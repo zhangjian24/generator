@@ -1,2 +1,2 @@
 # generator
-dbgenerator
+dbgenerator  dao
